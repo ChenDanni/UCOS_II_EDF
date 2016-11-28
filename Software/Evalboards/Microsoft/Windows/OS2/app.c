@@ -49,10 +49,13 @@
 /*
 *********************************************************************************************************
 *                                            LOCAL VARIABLES
+*											定义task栈空间
 *********************************************************************************************************
 */
 
 static  CPU_STK  AppTaskStartStk[APP_TASK_START_STK_SIZE];
+static  CPU_STK  Task1Stk[APP_TASK_START_STK_SIZE];
+static  CPU_STK  Task2Stk[APP_TASK_START_STK_SIZE];
 
 
 /*
@@ -62,6 +65,17 @@ static  CPU_STK  AppTaskStartStk[APP_TASK_START_STK_SIZE];
 */
 
 static  void  AppTaskStart(void  *p_arg);
+static	void  PeriodicTaskStart(void *p_arg);
+
+/*
+*********************************************************************************************************
+*                                         定义任务详情 {完成所需时间，周期，开始时钟周期}
+*********************************************************************************************************
+*/
+INT32S tasks[][3] = {
+	{ 1,3,0 },
+	{ 3,5,0 }
+};
 
 
 /*
@@ -80,16 +94,26 @@ static  void  AppTaskStart(void  *p_arg);
 int  main (void)
 {
     OSInit();                                                   /* Init uC/OS-II.                                       */
+	CPU_Init();
+    //OSTaskCreateExt((void(*)(void *))AppTaskStart,              /* Create the start task                                */
+    //    (void          *) 0,
+    //    (OS_STK        *)&AppTaskStartStk[APP_TASK_START_STK_SIZE - 1],
+    //    (INT8U          ) APP_TASK_START_PRIO,
+    //    (INT16U         ) APP_TASK_START_PRIO,
+    //    (OS_STK        *)&AppTaskStartStk[0],
+    //    (INT32U         ) APP_TASK_START_STK_SIZE,
+    //    (void          *) 0,
+    //    (INT16U         )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
 
-    OSTaskCreateExt((void(*)(void *))AppTaskStart,              /* Create the start task                                */
-        (void          *) 0,
-        (OS_STK        *)&AppTaskStartStk[APP_TASK_START_STK_SIZE - 1],
-        (INT8U          ) APP_TASK_START_PRIO,
-        (INT16U         ) APP_TASK_START_PRIO,
-        (OS_STK        *)&AppTaskStartStk[0],
-        (INT32U         ) APP_TASK_START_STK_SIZE,
-        (void          *) 0,
-        (INT16U         )(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
+	OSTaskCreateExt(PeriodicTaskStart,
+		(void          *) tasks[0],
+		(OS_STK        *)&Task1Stk[APP_TASK_START_STK_SIZE - 1],
+		(INT8U)1,
+		(INT16U)1,
+		(OS_STK        *)&Task1Stk[0],
+		(INT32U)APP_TASK_START_STK_SIZE,
+		(void          *) tasks[0],
+		(INT16U)(OS_TASK_OPT_STK_CHK | OS_TASK_OPT_STK_CLR));
 
     OSStart();                                                  /* Start multitasking (i.e. give control to uC/OS-II).  */
 }
@@ -111,25 +135,47 @@ int  main (void)
 *********************************************************************************************************
 */
 
-static  void  AppTaskStart (void *p_arg)
-{
-    OS_ERR  err;
-
-
-   (void)p_arg;
-
-    BSP_Init();                                                 /* Initialize BSP functions                             */
-    CPU_Init();                                                 /* Initialize uC/CPU services                           */
-
-#if OS_CFG_STAT_TASK_EN > 0u
-    OSStatTaskCPUUsageInit(&err);                               /* Compute CPU capacity with no task running            */
-#endif
-
-    APP_TRACE_DBG(("uCOS-II is Running...\n\r"));
-
-    while (DEF_ON) {                                            /* Task body, always written as an infinite loop.       */
-        OSTimeDlyHMSM(0, 0, 1, 0);
-
-        APP_TRACE_DBG(("Time: %d\n\r", OSTimeGet(&err)));
-    }
+static void PeriodicTaskStart(void *p_arg) {
+	INT32S start;
+	INT32S period;
+	INT32S delay;
+	INT32S finishTime;
+	start = 0;
+	
+	while (1) {
+		while (OSTCBCur->leftCompTime > 0){}
+		period = OSTCBCur->period;
+		finishTime = OSTimeGet();
+		delay = start + period - finishTime;
+		
+		//初始化下一周期任务
+		start = start + period;
+		OSTCBCur->leftCompTime = OSTCBCur->completeTime;
+		//等待
+		OSTimeDly(delay);
+		printf(" complete 1 \n");
+	}
 }
+
+//static  void  AppTaskStart (void *p_arg)
+//{
+//    OS_ERR  err;
+//
+//
+//   (void)p_arg;
+//
+//    BSP_Init();                                                 /* Initialize BSP functions                             */
+//    CPU_Init();                                                 /* Initialize uC/CPU services                           */
+//
+//#if OS_CFG_STAT_TASK_EN > 0u
+//    OSStatTaskCPUUsageInit(&err);                               /* Compute CPU capacity with no task running            */
+//#endif
+//
+//    APP_TRACE_DBG(("uCOS-II is Running...\n\r"));
+//
+//    while (DEF_ON) {                                            /* Task body, always written as an infinite loop.       */
+//        OSTimeDlyHMSM(0, 0, 1, 0);
+//
+//        APP_TRACE_DBG(("Time: %d\n\r", OSTimeGet(&err)));
+//    }
+//}

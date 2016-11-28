@@ -30,6 +30,17 @@
 
 /*
 *********************************************************************************************************
+*								TASK对应的参数
+*********************************************************************************************************
+*/
+#define COMPLETE_TIME 0
+#define PERIOD 1
+#define START_TIME 2
+
+
+
+/*
+*********************************************************************************************************
 *                                      PRIORITY RESOLUTION TABLE
 *
 * Note: Index into table is bit pattern to resolve highest priority
@@ -923,6 +934,8 @@ void  OSTimeTick (void)
     OS_CPU_SR  cpu_sr = 0u;
 #endif
 
+	//所需时间减少
+	OSTCBCur->leftCompTime--;
 
 
 #if OS_TIME_TICK_HOOK_EN > 0u
@@ -1665,8 +1678,6 @@ void  OS_Sched (void)
     OS_CPU_SR  cpu_sr = 0u;
 #endif
 
-
-
     OS_ENTER_CRITICAL();
     if (OSIntNesting == 0u) {                          /* Schedule only if all ISRs done and ...       */
         if (OSLockNesting == 0u) {                     /* ... scheduler is not locked                  */
@@ -2000,7 +2011,13 @@ INT8U  OS_TCBInit (INT8U    prio,
         ptcb->OSTCBStkSize       = stk_size;               /* Store stack size                         */
         ptcb->OSTCBStkBottom     = pbos;                   /* Store pointer to bottom of stack         */
         ptcb->OSTCBOpt           = opt;                    /* Store task options                       */
-        ptcb->OSTCBId            = id;                     /* Store task ID                            */
+        ptcb->OSTCBId            = id;                     /* Store task ID							   */
+		//初始化新增变量
+		ptcb->deadline = ((INT32S *)pext)[PERIOD];
+		ptcb->completeTime = ((INT32S *)pext)[COMPLETE_TIME];
+		ptcb->period = ((INT32S *)pext)[PERIOD];
+		ptcb->leftCompTime = ((INT32S *)pext)[COMPLETE_TIME];
+		ptcb->OSTCBDly = ((INT32S *)pext)[START_TIME];
 #else
         pext                     = pext;                   /* Prevent compiler warning if not used     */
         stk_size                 = stk_size;
@@ -2008,6 +2025,7 @@ INT8U  OS_TCBInit (INT8U    prio,
         opt                      = opt;
         id                       = id;
 #endif
+
 
 #if OS_TASK_DEL_EN > 0u
         ptcb->OSTCBDelReq        = OS_ERR_NONE;

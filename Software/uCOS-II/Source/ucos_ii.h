@@ -559,13 +559,16 @@ typedef struct os_tcb {
     OS_STK          *OSTCBStkPtr;           /* Pointer to current top of stack                         */
 
 #if OS_TASK_CREATE_EXT_EN > 0u
-    void            *OSTCBExtPtr;           /* Pointer to user definable data for TCB extension        */
+    void        *OSTCBExtPtr;           /* Pointer to user definable data for TCB extension        */
     OS_STK          *OSTCBStkBottom;        /* Pointer to bottom of stack                              */
     INT32U           OSTCBStkSize;          /* Size of task stack (in number of stack elements)        */
     INT16U           OSTCBOpt;              /* Task options as passed by OSTaskCreateExt()             */
     INT16U           OSTCBId;               /* Task ID (0..65535)                                      */
 #endif
-
+	INT32U			 deadline;				/*剩余截止时间*/
+	INT32U			 period;				/*周期*/
+	INT32U			 completeTime;			/*需要完成时间*/
+	INT32U			 leftCompTime;			/*剩余完成时间*/
     struct os_tcb   *OSTCBNext;             /* Pointer to next     TCB in the TCB list                 */
     struct os_tcb   *OSTCBPrev;             /* Pointer to previous TCB in the TCB list                 */
 
